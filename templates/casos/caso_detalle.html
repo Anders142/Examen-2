@@ -1,0 +1,70 @@
+{% extends 'casos/base.html' %}
+{% block contenido %}
+{% if messages %}
+<ul>
+    {% for m in messages %}
+    <li style="color:{% if m.tags == 'error' %}red{% else %}green{% endif %}">{{ m }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<h2>{{ caso.codigo }} - {{ caso.titulo }}</h2>
+<p><b>Cliente:</b> {{ caso.cliente.nombres }}</p>
+<p><b>Estado:</b> {{ caso.estado.nombre }}</p>
+<p><b>Fecha de inicio:</b> {{ caso.fecha_inicio|date:"d/m/Y" }}</p>
+<p><b>Descripción:</b> {{ caso.descripcion }}</p>
+<p><a href="{% url 'api_caso' caso.pk %}">Ver JSON</a></p>
+
+<h3>Expedientes</h3>
+<ul>
+    {% for e in expedientes %}
+    <li>
+        {{ e.numero }} - {{ e.juzgado }} ({{ e.fecha_presentacion|date:"d/m/Y" }})
+        {% if e.documento %}
+            <a href="{{ e.documento.url }}" target="_blank">Ver documento</a>
+        {% else %}
+            Sin documento
+        {% endif %}
+        <form method="post" action="{% url 'subir_documento' e.pk %}" enctype="multipart/form-data" style="display:inline;">
+            {% csrf_token %}
+            <input type="file" name="documento">
+            <button type="submit">Subir</button>
+        </form>
+    </li>
+    {% empty %}
+    <li>Sin expedientes.</li>
+    {% endfor %}
+</ul>
+
+<h3>Pagos</h3>
+{% if not caso.estado.permite_pagos %}
+    <p style="color:red">Este caso no admite pagos</p>
+{% endif %}
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Fecha</th>
+        <th>Descripción</th>
+        <th>Monto</th>
+    </tr>
+    {% for p in pagos %}
+    <tr>
+        <td>{{ p.fecha|date:"d/m/Y" }}</td>
+        <td>{{ p.descripcion }}</td>
+        <td>S/ {{ p.monto|floatformat:2 }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="3">Sin pagos registrados.</td></tr>
+    {% endfor %}
+</table>
+<p><b>Total pagado:</b> S/ {{ caso.total_pagado|floatformat:2 }}</p>
+
+<h4>Registrar pago</h4>
+<form method="post" action="{% url 'registrar_pago' caso.pk %}">
+    {% csrf_token %}
+    Monto: <input type="number" name="monto" step="0.01" min="0.01" required>
+    Descripción: <input type="text" name="descripcion">
+    <button type="submit">Registrar pago</button>
+</form>
+<br>
+<a href="{% url 'lista_casos' %}">Volver a casos</a>
+{% endblock %}
